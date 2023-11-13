@@ -2,7 +2,7 @@ from mesa import Model, agent
 from mesa.time import RandomActivation
 from mesa.space import MultiGrid
 from mesa import DataCollector
-from agent import RandomAgent, ObstacleAgent
+from agent import RandomAgent, ObstacleAgent, TrashAgent
 
 class RandomModel(Model):
     """ 
@@ -48,8 +48,14 @@ class RandomModel(Model):
                 pos = pos_gen(self.grid.width, self.grid.height)
 
             self.grid.place_agent(a, pos)
-        
-        self.datacollector.collect(self)
+
+        # Add trash to the grid
+        for i in range(10):
+            pos = pos_gen(self.grid.width, self.grid.height)
+            while (not self.grid.is_cell_empty(pos)):
+                pos = pos_gen(self.grid.width, self.grid.height)
+            self.grid.place_agent(TrashAgent(i+2000, self), pos)
+        #Place trash agent in random cell
 
     def step(self):
         '''Advance the model by one step.'''
