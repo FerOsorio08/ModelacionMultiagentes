@@ -41,6 +41,13 @@ class Roomba(Agent):
         trash_neighbors = [n for n in possible_steps if any(isinstance(agent, TrashAgent) for agent in self.model.grid.get_cell_list_contents(n))]
         charging_neighbors = [n for n in possible_steps if any(isinstance(agent, Charging) for agent in self.model.grid.get_cell_list_contents(n))]
 
+        if charging_neighbors:
+            next_move = self.random.choice(charging_neighbors) if charging_neighbors else self.random.choice(possible_steps)
+            print("Charging to 100")
+            self.battery += 100
+        else:
+            next_move = self.random.choice(possible_steps)
+            self.battery -= 1
         if obstacle_neighbors:
             free_spaces_away = [p for p in possible_steps if p not in obstacle_neighbors and self.model.grid.is_cell_empty(p)]
             next_move = self.random.choice(free_spaces_away) if free_spaces_away else self.random.choice(possible_steps)
@@ -48,13 +55,6 @@ class Roomba(Agent):
         elif trash_neighbors:
             next_move = self.random.choice(trash_neighbors)
             self.battery -= 1
-        elif self.battery < 20 and charging_neighbors:
-            next_move = self.random.choice(charging_neighbors) if charging_neighbors else self.random.choice(possible_steps)
-            self.battery += 100
-        else:
-            next_move = self.random.choice(possible_steps)
-            self.battery -= 1
-
         if self.battery == 0:
             self.model.running = False
             print("Battery is 0, stopping simulation")
