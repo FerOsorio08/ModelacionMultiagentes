@@ -20,6 +20,7 @@ class Roomba(Agent):
         self.direction = 4
         self.steps_taken = 0
         self.visited_cells = set()
+        self.battery = 100
 
     def move(self):
         """ 
@@ -35,32 +36,28 @@ class Roomba(Agent):
         # Get the neighbors that have trash
         obstacle_neighbors = [neighbor for neighbor in possible_steps if any(isinstance(agent, ObstacleAgent) for agent in self.model.grid.get_cell_list_contents(neighbor))]
 
+
         # If there are neighbors with obstacles, prioritize moving away from them
         if obstacle_neighbors:
             free_spaces_away_from_obstacles = [p for p in possible_steps if p not in obstacle_neighbors and self.model.grid.is_cell_empty(p)]
-            if free_spaces_away_from_obstacles:
-                next_move = self.random.choice(free_spaces_away_from_obstacles)
-            else:
-                # If there are no free spaces away from obstacles, move randomly
-                next_move = self.random.choice(possible_steps)
+            next_move = self.random.choice(free_spaces_away_from_obstacles) if free_spaces_away_from_obstacles else self.random.choice(possible_steps)
+            self.battery -= 1
+
         
         else:
             trash_neighbors = [neighbor for neighbor in possible_steps if any(isinstance(agent, TrashAgent) for agent in self.model.grid.get_cell_list_contents(neighbor))]
-
-            # If there are neighbors with trash, prioritize moving to one of them
-            if trash_neighbors:
-                # next_move = self.choice(trash_neighbors)
-                next_move = self.random.choice(trash_neighbors)
-            else:
-                # If there are no neighbors with trash, prioritize moving to an unvisited cell
-                unvisited_cells = [p for p in possible_steps if p not in self.visited_cells]
-                if unvisited_cells:
-                    next_move = self.random.choice(unvisited_cells)
-                else:
-                    # If all cells have been visited, choose a random empty cell
-                    freeSpaces = list(map(self.model.grid.is_cell_empty, possible_steps))
-                    next_moves = [p for p, f in zip(possible_steps, freeSpaces) if f]
-                    next_move = self.random.choice(next_moves)
+            next_move = self.random.choice(trash_neighbors) if trash_neighbors else self.random.choice(possible_steps)
+            self.battery -= 1
+        
+        #if battery is low, go to charging station
+        if self.battery < 20:
+            charging_neighbors = [neighbor for neighbor in possible_steps if any(isinstance(agent, Charging) for agent in self.model.grid.get_cell_list_contents(neighbor))]
+            next_move = self.random.choice(charging_neighbors) if charging_neighbors else self.random.choice(possible_steps)
+            self.battery += 100
+        
+        #if battery is 0 then stop
+        if self.battery == 0:
+            self.model.running = False
 
         # Now move: this for many roombas
         # if self.random.random() < 0.1:
@@ -71,12 +68,8 @@ class Roomba(Agent):
         self.visited_cells.add(self.pos)
         self.model.grid.move_agent(self, next_move)
         self.steps_taken += 1
+        self.battery -= 1
  
-
-        # If the agent can't move, then it stays put
-        #map : apply a function to every item of an iterable, and return a list of the results
-        #zip : make an iterator that aggregates elements from each of the iterables
-        
     
     
     def detectTrash(self):
@@ -111,6 +104,16 @@ class ObstacleAgent(Agent):
 class TrashAgent(Agent):
     """
     Trash agent. Just to add trash to the grid.
+    """
+    def __init__(self, unique_id, model):
+        super().__init__(unique_id, model)
+
+    def step(self):
+        pass
+
+class Charging(Agent):
+    """
+    Charging agent. Just to add charging stations to the grid.
     """
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)

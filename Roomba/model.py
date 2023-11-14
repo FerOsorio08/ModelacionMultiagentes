@@ -2,7 +2,7 @@ from mesa import Model, agent
 from mesa.time import RandomActivation
 from mesa.space import MultiGrid
 from mesa import DataCollector
-from agent import Roomba, ObstacleAgent, TrashAgent
+from agent import Roomba, ObstacleAgent, TrashAgent, Charging
 
 class RandomModel(Model):
     """ 
@@ -41,7 +41,9 @@ class RandomModel(Model):
         for i in range(self.num_agents):
 
             a = Roomba(i+1000, self) 
+            b = Charging(i+3000, self)
             self.schedule.add(a)
+            self.schedule.add(b)
 
             pos = pos_gen(self.grid.width, self.grid.height)
 
@@ -50,6 +52,7 @@ class RandomModel(Model):
                 pos = pos_gen(self.grid.width, self.grid.height)
 
             self.grid.place_agent(a, pos)
+            self.grid.place_agent(b, pos)
 
         # Add trash to the grid
         for i in range(10):
