@@ -7,7 +7,7 @@ def agent_portrayal(agent):
     
     portrayal = {"Shape": "circle",
                  "Filled": "true",
-                 "Layer": 0,
+                 "Layer": 1,
                  "Color": "red",
                  "r": 0.5}
 
@@ -23,9 +23,9 @@ def agent_portrayal(agent):
 
     return portrayal
 
-model_params = {"N":5, "width":10, "height":10}
+model_params = {"N":1, "width":12, "height":12}
 
-grid = CanvasGrid(agent_portrayal, 10, 10, 500, 500)
+grid = CanvasGrid(agent_portrayal, 12, 12, 500, 500)
 
 # bar_chart = BarChartModule(
 #     [{"Label":"Steps", "Color":"#AA0000"}], 
