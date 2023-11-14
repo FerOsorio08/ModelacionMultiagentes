@@ -44,6 +44,7 @@ class RandomModel(Model):
             b = Charging(i+3000, self)
             self.schedule.add(a)
             self.schedule.add(b)
+            
 
             pos = pos_gen(self.grid.width, self.grid.height)
 

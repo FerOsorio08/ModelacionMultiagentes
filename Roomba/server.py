@@ -14,7 +14,7 @@ def agent_portrayal(agent):
     if (isinstance(agent, ObstacleAgent)):
         portrayal["Color"] = "grey"
         portrayal["Layer"] = 1
-        portrayal["r"] = 0.4
+        portrayal["r"] = 0.6
     
     if (isinstance(agent, TrashAgent)):
         portrayal["Color"] = "green"
