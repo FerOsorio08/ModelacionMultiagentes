@@ -24,6 +24,7 @@ class Roomba(Agent):
         obstacle_neighbors = []
         trash_neighbors = []
         charging_neighbors = []
+        unvisited_neighbors = []
 
     def move(self):
         """ 
@@ -33,7 +34,10 @@ class Roomba(Agent):
             self.pos,
             moore=True, # Boolean for whether to use Moore neighborhood (including diagonals) or Von Neumann (only up/down/left/right).
             include_center=False # Boolean for whether to include the center cell itself as one of the neighbors
-            ) 
+            )
+        
+        unvisited_neighbors = [neighbor for neighbor in possible_steps if neighbor not in self.visited_cells]
+        next_move = self.random.choice(unvisited_neighbors)
         
 
         # Now move: this for many roombas
@@ -45,7 +49,7 @@ class Roomba(Agent):
         x = self.pos[0]
         y = self.pos[1]
         self.visited_cells.add(self.pos)
-        self.model.grid.move_agent(self, (x+1,y+1))
+        self.model.grid.move_agent(self, next_move)
         self.steps_taken += 1
         self.battery -= 1
  
@@ -61,13 +65,24 @@ class Roomba(Agent):
         if trash_agents:
             # If there is trash in the cell, "delete" the TrashAgent
             trash_agent = trash_agents[0]  # Assuming there is at most one trash agent in the cell
-            self.model.grid.remove_agent(trash_agent)
+            self.model.grid.remove_agent(next_move)
     
     def ShortestPathtoTrash(self):
         """
         Finds the shortest path to the nearest trash
         """
         pass
+
+    def detectCharging(self):
+        """
+        Detects if there is a charging station in the same cell as the agent
+        """
+        cell_contents = self.model.grid.get_cell_list_contents(self.pos)
+        charging_agents = [agent for agent in cell_contents if isinstance(agent, Charging)]
+
+        if charging_agents:
+            # If there is a charging station in the cell, "delete" the Charging agent
+            charging_agent = charging_agents[0]
     
     def step(self):
         """ 
@@ -75,6 +90,7 @@ class Roomba(Agent):
         """
         self.move()
         self.detectTrash()
+        self.detectCharging()
 
 class ObstacleAgent(Agent):
     """
