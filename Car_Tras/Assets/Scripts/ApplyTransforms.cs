@@ -115,6 +115,7 @@ public class ApplyTransforms : MonoBehaviour
 
         Matrix4x4 moveWheel1 = HW_Transforms.TranslationMat(0.9f,0.35f,1.5f);
         Matrix4x4 moveWheel2 = HW_Transforms.TranslationMat(-0.9f,0.35f,1.5f);
+        Matrix4x4 rotateWheel = HW_Transforms.RotateMat(90, AXIS.X);
 
         Matrix4x4 moveWheel3 = HW_Transforms.TranslationMat(0.9f,0.35f,-1.4f);
         Matrix4x4 moveWheel4 = HW_Transforms.TranslationMat(-0.9f,0.35f,-1.4f);
