@@ -32,14 +32,14 @@ class Roomba(Agent):
             include_center=False # Boolean for whether to include the center cell itself as one of the neighbors
             ) 
         
-        # Checks which grid cells are empty
-        # Get the neighbors that have trash
-        obstacle_neighbors = [neighbor for neighbor in possible_steps if any(isinstance(agent, ObstacleAgent) for agent in self.model.grid.get_cell_list_contents(neighbor))]
-
         # If there are neighbors with obstacles, prioritize moving away from them
         obstacle_neighbors = [n for n in possible_steps if any(isinstance(agent, ObstacleAgent) for agent in self.model.grid.get_cell_list_contents(n))]
         trash_neighbors = [n for n in possible_steps if any(isinstance(agent, TrashAgent) for agent in self.model.grid.get_cell_list_contents(n))]
         charging_neighbors = [n for n in possible_steps if any(isinstance(agent, Charging) for agent in self.model.grid.get_cell_list_contents(n))]
+        #Cell for the charging station
+        
+
+        # print("Charging neighbors: ", charging_neighbors)
 
         if self.battery <= 0:
             self.model.running = False
