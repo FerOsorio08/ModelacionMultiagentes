@@ -45,15 +45,21 @@ class RandomModel(Model):
             self.schedule.add(a)
             self.schedule.add(b)
             
+            if (i==0):
+                pos = (1,1)
 
-            pos = pos_gen(self.grid.width, self.grid.height)
+                # If the cell is not empty, keep looking for an empty cell
+                while (not self.grid.is_cell_empty(pos)):
+                    pos = (1,1)
 
-            # If the cell is not empty, keep looking for an empty cell
-            while (not self.grid.is_cell_empty(pos)):
+                self.grid.place_agent(a, pos)
+                self.grid.place_agent(b, pos)
+            else:
                 pos = pos_gen(self.grid.width, self.grid.height)
-
-            self.grid.place_agent(a, pos)
-            self.grid.place_agent(b, pos)
+                while (not self.grid.is_cell_empty(pos)):
+                    pos = pos_gen(self.grid.width, self.grid.height)
+                self.grid.place_agent(a, pos)
+                self.grid.place_agent(b, pos)
 
         # Add trash to the grid
         for i in range(10):
