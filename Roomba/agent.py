@@ -36,28 +36,34 @@ class Roomba(Agent):
         # Get the neighbors that have trash
         obstacle_neighbors = [neighbor for neighbor in possible_steps if any(isinstance(agent, ObstacleAgent) for agent in self.model.grid.get_cell_list_contents(neighbor))]
 
-
         # If there are neighbors with obstacles, prioritize moving away from them
         if obstacle_neighbors:
             free_spaces_away_from_obstacles = [p for p in possible_steps if p not in obstacle_neighbors and self.model.grid.is_cell_empty(p)]
             next_move = self.random.choice(free_spaces_away_from_obstacles) if free_spaces_away_from_obstacles else self.random.choice(possible_steps)
             self.battery -= 1
-
         
         else:
             trash_neighbors = [neighbor for neighbor in possible_steps if any(isinstance(agent, TrashAgent) for agent in self.model.grid.get_cell_list_contents(neighbor))]
-            next_move = self.random.choice(trash_neighbors) if trash_neighbors else self.random.choice(possible_steps)
-            self.battery -= 1
-        
-        #if battery is low, go to charging station
-        if self.battery < 20:
-            charging_neighbors = [neighbor for neighbor in possible_steps if any(isinstance(agent, Charging) for agent in self.model.grid.get_cell_list_contents(neighbor))]
-            next_move = self.random.choice(charging_neighbors) if charging_neighbors else self.random.choice(possible_steps)
-            self.battery += 100
+
+            # If there are neighbors with trash, prioritize moving to one of them
+            if trash_neighbors:
+                next_move = self.random.choice(trash_neighbors)
+                self.battery -= 1
+            else:
+                #if battery is low, go to charging station
+                if self.battery < 20:
+                    charging_neighbors = [neighbor for neighbor in possible_steps if any(isinstance(agent, Charging) for agent in self.model.grid.get_cell_list_contents(neighbor))]
+                    next_move = self.random.choice(charging_neighbors) if charging_neighbors else self.random.choice(possible_steps)
+                    self.battery += 100
+                else:
+                    # If there are no neighbors with trash and battery is not low, move randomly
+                    next_move = self.random.choice(possible_steps)
+                    self.battery -= 1
         
         #if battery is 0 then stop
         if self.battery == 0:
             self.model.running = False
+            print("Battery is 0, stopping simulation")
 
         # Now move: this for many roombas
         # if self.random.random() < 0.1:
