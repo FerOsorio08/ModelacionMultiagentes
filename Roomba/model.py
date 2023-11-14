@@ -2,7 +2,7 @@ from mesa import Model, agent
 from mesa.time import RandomActivation
 from mesa.space import MultiGrid
 from mesa import DataCollector
-from agent import RandomAgent, ObstacleAgent, TrashAgent
+from agent import Roomba, ObstacleAgent, TrashAgent
 
 class RandomModel(Model):
     """ 
@@ -22,7 +22,7 @@ class RandomModel(Model):
         self.running = True 
 
         self.datacollector = DataCollector( 
-        agent_reporters={"Steps": lambda a: a.steps_taken if isinstance(a, RandomAgent) else 0})
+        agent_reporters={"Steps": lambda a: a.steps_taken if isinstance(a, Roomba) else 0})
 
         # Creates the border of the grid
         border = [(x,y) for y in range(height) for x in range(width) if y in [0, height-1] or x in [0, width - 1]]
@@ -31,6 +31,8 @@ class RandomModel(Model):
         for pos in border:
             obs = ObstacleAgent(pos, self)
             self.grid.place_agent(obs, pos)
+        
+        
 
         # Function to generate random positions
         pos_gen = lambda w, h: (self.random.randrange(w), self.random.randrange(h))
@@ -38,7 +40,7 @@ class RandomModel(Model):
         # Add the agent to a random empty grid cell
         for i in range(self.num_agents):
 
-            a = RandomAgent(i+1000, self) 
+            a = Roomba(i+1000, self) 
             self.schedule.add(a)
 
             pos = pos_gen(self.grid.width, self.grid.height)
@@ -56,6 +58,12 @@ class RandomModel(Model):
                 pos = pos_gen(self.grid.width, self.grid.height)
             self.grid.place_agent(TrashAgent(i+2000, self), pos)
         #Place trash agent in random cell
+
+        for i in range(10):
+            pos = pos_gen(self.grid.width, self.grid.height)
+            while (not self.grid.is_cell_empty(pos)):
+                pos = pos_gen(self.grid.width, self.grid.height)
+            self.grid.place_agent(ObstacleAgent(i+2000, self), pos)
 
     def step(self):
         '''Advance the model by one step.'''
