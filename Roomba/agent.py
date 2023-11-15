@@ -135,9 +135,9 @@ class Roomba(Agent):
         coordinates = list(self.visited_cells)  # Convert set to list
         self.graph.add_nodes_from(coordinates)
         #Create edges between all nodes
-        for i in range(len(coordinates)):
-            for j in range(i+1, len(coordinates)):
-                self.graph.add_edge(coordinates[i], coordinates[j])
+        # self.graph.add_edges_from([(coordinates[i], coordinates[i + 1]) for i in range(len(coordinates) - 1)] + [(coordinates[-1], coordinates[0])])
+        for i in range(len(coordinates) - 1):
+            self.graph.add_edge(coordinates[i], coordinates[i + 1])
 
         start_node = self.pos
         goal_node = (1, 1)
@@ -192,54 +192,6 @@ class Roomba(Agent):
         self.steps_taken += 1
         self.lowerBattery()
 
-    
-    def return_to_station(self):
-        if self.battery == 0:
-            self.model.num_agents -= 1
-            return
-
-        if len(self.visited_cells) == 0:
-            self.recharge()
-            return
-
-        possible_steps = self.model.grid.get_neighborhood(
-            self.pos,
-            # Boolean for whether to use Moore neighborhood (including diagonals) or Von Neumann (only up/down/left/right).
-            moore=True,
-            include_center=False)
-
-        possibleStation = self.model.grid.get_cell_list_contents(
-            possible_steps)
-
-        isStation = False
-        isAgent = False
-
-        for agent in possibleStation:
-            # check if there is a load station in the possible steps and if that station doesnt have an agent on it
-            if isinstance(agent, LoadStation):
-                isStation = True
-            if isinstance(agent, RandomAgent):
-                isAgent = True
-
-        if isStation and not isAgent:
-            self.model.grid.move_agent(self, agent.pos)
-            self.steps_taken += 1
-            self.battery -= 1
-            self.detectCharging()
-            return
-
-        # find the first time your currrent position is in the array
-        for i in range(len(self.visited)):
-            if self.visited[i] == self.pos:
-                if i == 0:
-                    self.recharge()
-                    return
-                self.model.grid.move_agent(self, self.visited[i-1])
-                self.steps_taken += 1
-                self.battery -= 1
-                return
-
-        self.model.grid.move_agent(self, self.visited[-1])
 
     def detectCharging(self):
         if self.battery >= 100:
@@ -259,18 +211,14 @@ class Roomba(Agent):
         """
         self.move()
         self.detectTrash()
-        # self.detectObstacle()
         # path_to_home = self.backHome()
+        # if self.battery <= 53:
+        #     self.backHome()
+        #     self.detectCharging()
         # if len(path_to_home) <= self.battery:
         #     self.backHome()
         #     self.detectCharging()
-        if self.battery <=53:
-            self.backHome()
-            self.detectCharging()
-        # self.ExploreCell()
-        # self.detectCharging()
-        
-        # self.ExploreCell()
+
 
 class ObstacleAgent(Agent):
     """
