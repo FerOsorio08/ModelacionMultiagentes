@@ -21,10 +21,11 @@ class Roomba(Agent):
         self.steps_taken = 0
         self.visited_cells = set()
         self.battery = 100
-        obstacle_neighbors = []
-        trash_neighbors = []
-        charging_neighbors = []
-        unvisited_neighbors = []
+        self.charging = False
+        # obstacle_neighbors = []
+        # trash_neighbors = []
+        # charging_neighbors = []
+        # unvisited_neighbors = []
 
     def lowerBattery(self):
         """
@@ -104,24 +105,7 @@ class Roomba(Agent):
             self.pos,
             moore=True, # Boolean for whether to use Moore neighborhood (including diagonals) or Von Neumann (only up/down/left/right).
             include_center=False) 
-        # Boolean for whether to include the center cell itself as one of the neighbors
-
-        # obstacle_neighbors = [neighbor for neighbor in possible_steps if neighbor not in self.visited_cells]
-        # next_move = self.random.choice(obstacle_neighbors)
-        # cell_contents = self.model.grid.get_cell_list_contents(next_move)
-        # obstacle_agents = [agent for agent in cell_contents if isinstance(agent, ObstacleAgent)]
-        # if obstacle_agents:
-        #     print("obstacle", obstacle_agents)
-        #     self.model.grid.move_agent(self, next_move)
-        #     self.visited_cells.add(self.pos)
-        #     self.steps_taken += 1
-        #     self.lowerBattery()
-        # else:
-        #     self.model.grid.move_agent(self, next_move)
-        #     self.visited_cells.add(self.pos)
-        #     self.steps_taken += 1
-        #     self.lowerBattery()
-            
+    
     def ExploreCell(self):
         """
         Detects if there is an obstacle in the same cell as the agent
@@ -141,30 +125,75 @@ class Roomba(Agent):
         self.steps_taken += 1
         self.lowerBattery()
 
-    def ShortestPathtoTrash(self):
-        """
-        Finds the shortest path to the nearest trash
-        """
-        pass
-
-    def detectCharging(self):
-        """
-        Detects if there is a charging station in the same cell as the agent
-        """
-        cell_contents = self.model.grid.get_cell_list_contents(self.pos)
-        charging_agents = [agent for agent in cell_contents if isinstance(agent, Charging)]
-
-        if charging_agents:
-            # If there is a charging station in the cell, "delete" the Charging agent
-            charging_agent = charging_agents[0]
     
+    def return_to_station(self):
+        if self.battery == 0:
+            self.model.num_agents -= 1
+            return
+
+        if len(self.visited_cells) == 0:
+            self.recharge()
+            return
+
+        possible_steps = self.model.grid.get_neighborhood(
+            self.pos,
+            # Boolean for whether to use Moore neighborhood (including diagonals) or Von Neumann (only up/down/left/right).
+            moore=True,
+            include_center=False)
+
+        possibleStation = self.model.grid.get_cell_list_contents(
+            possible_steps)
+
+        isStation = False
+        isAgent = False
+
+        for agent in possibleStation:
+            # check if there is a load station in the possible steps and if that station doesnt have an agent on it
+            if isinstance(agent, LoadStation):
+                isStation = True
+            if isinstance(agent, RandomAgent):
+                isAgent = True
+
+        if isStation and not isAgent:
+            self.model.grid.move_agent(self, agent.pos)
+            self.steps_taken += 1
+            self.battery -= 1
+            self.detectCharging()
+            return
+
+        # find the first time your currrent position is in the array
+        for i in range(len(self.visited)):
+            if self.visited[i] == self.pos:
+                if i == 0:
+                    self.recharge()
+                    return
+                self.model.grid.move_agent(self, self.visited[i-1])
+                self.steps_taken += 1
+                self.battery -= 1
+                return
+
+        self.model.grid.move_agent(self, self.visited[-1])
+
+    def detectCharging(sFalse):
+        if self.battery >= 100:
+            self.charging = False
+            return
+
+        self.charging = True
+        station = self.model.grid.get_cell_list_contents([self.pos])
+        for agent in station:
+            if isinstance(agent, Charging):
+                self.battery += 5
+                self.visited = []
+
     def step(self):
         """ 
         Determines the new direction it will take, and then moves
         """
         self.move()
-        self.detectObstacle()
         self.detectTrash()
+        self.detectObstacle()
+        # self.ExploreCell()
         # self.detectCharging()
         
         # self.ExploreCell()
