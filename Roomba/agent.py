@@ -36,14 +36,35 @@ class Roomba(Agent):
         """ 
         Determines if the agent can move in the direction that was chosen
         """
+        if self.battery == 0:
+            self.model.num_agents -= 1
+            return
+        
         possible_steps = self.model.grid.get_neighborhood(
             self.pos,
             moore=True, # Boolean for whether to use Moore neighborhood (including diagonals) or Von Neumann (only up/down/left/right).
             include_center=False # Boolean for whether to include the center cell itself as one of the neighbors
             )
         
-        unvisited_neighbors = [neighbor for neighbor in possible_steps if neighbor not in self.visited_cells]
-        next_move = self.random.choice(unvisited_neighbors)
+        trash_neighbors = self.model.grid.get_cell_list_contents(possible_steps)
+        trash_pos = []
+        for agent in trash_neighbors:
+            if isinstance(agent, TrashAgent):
+                trash_pos.append(agent.pos)
+        
+        # unvisited_neighbors = [neighbor for neighbor in possible_steps if neighbor not in self.visited_cells]
+        # next_move = self.random.choice(unvisited_neighbors)
+        free_spaces = list(map(self.model.grid.is_cell_empty, possible_steps))
+        next_moves = []
+        if trash_pos:
+            next_moves = trash_pos
+        else :
+            for i in range(len(free_spaces)):
+                if free_spaces[i]:
+                    next_moves.append(possible_steps[i])
+        next_moves_nonVisited = list(set(next_moves) - set(self.visited_cells))
+        next_move = self.random.choice(next_moves_nonVisited) if len(next_moves_nonVisited) > 0 else self.random.choice(next_moves)
+
         
 
         # Now move: this for many roombas
@@ -52,8 +73,6 @@ class Roomba(Agent):
         #     self.model.grid.move_agent(self, next_move)
         #     self.steps_taken += 1
         #Move for 1 roomba
-        x = self.pos[0]
-        y = self.pos[1]
         self.visited_cells.add(self.pos)
         self.model.grid.move_agent(self, next_move)
         self.steps_taken += 1
