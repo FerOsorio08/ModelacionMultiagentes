@@ -173,7 +173,7 @@ public class ApplyTransforms : MonoBehaviour
         {
             Vector4 temp4 = new Vector4(wheel4Vertices[i].x, wheel4Vertices[i].y, wheel4Vertices[i].z, 1);
 
-            wheel4NewVertices[i] = composite * moveWheel4* rotateWheelinOrigin* scaleWheel*temp4;
+            wheel4NewVertices[i] = composite * moveWheel4* rotateWheelinOrigin* scaleWheel* temp4;
         }
 
 

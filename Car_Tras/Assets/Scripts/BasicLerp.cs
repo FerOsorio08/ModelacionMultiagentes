@@ -5,7 +5,7 @@ using UnityEngine;
 public class BasicLerp : MonoBehaviour
 {
     [SerializeField] Vector3 startPos;
-    [SerializeField] Vector3 endPos;
+    [SerializeField] Vector3 finalPos;
     [Range(0.0f, 1.0f)]
     [SerializeField] float t;
 
@@ -22,12 +22,18 @@ public class BasicLerp : MonoBehaviour
     void Update()
     {
         t = elapsedTime / moveTime;
-        Vector3 position = startPos + (endPos - startPos) * t;
+        t = t * t * (3.0f - 2.0f * t);
+        Vector3 position = startPos + (finalPos - startPos) * t;
         transform.position = position;
+        Matrix4x4 move = HW_Transforms.TranslationMat(position.x, position.y, position.z);
         elapsedTime += Time.deltaTime;
         if (elapsedTime > moveTime)
         {
             elapsedTime = 0.0f;
+
+            Vector3 temp = finalPos;
+            finalPos = startPos;
+            startPos = temp;
         }
 
 
