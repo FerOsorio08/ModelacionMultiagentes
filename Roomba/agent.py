@@ -1,4 +1,6 @@
 from mesa import Agent
+import networkx as nx
+import matplotlib.pyplot as plt
 
 class Roomba(Agent):
     """
@@ -21,6 +23,8 @@ class Roomba(Agent):
         self.visited_cells = set()
         self.battery = 100
         self.charging = False
+        self.graph = nx.Graph()
+
         # obstacle_neighbors = []
         # trash_neighbors = []
         # charging_neighbors = []
@@ -78,7 +82,31 @@ class Roomba(Agent):
         self.model.grid.move_agent(self, next_move)
         self.steps_taken += 1
         self.lowerBattery()
- 
+
+    def a_star_search(self, graph, start, goal):
+        """A* search to find the shortest path between a start and a goal node.
+        Args:
+            graph: The graph to search
+            start: The start node
+            goal: The goal node
+        """
+        # self.graph.add_node((1,1))
+        # self.graph.add_node(self.pos)
+        x, y = start
+        j, i = goal
+        heuristic  = abs(x - j) + abs(y - i)
+        try:
+            path = nx.astar_path(graph, start, goal, heuristic=self.heuristic)
+            return path
+        except nx.NetworkXNoPath:
+            # If no path is found, return None
+            return None
+    
+    def heuristic(self, a, b):
+        """Manhattan distance heuristic for A* pathfinding."""
+        (x1, y1) = a
+        (x2, y2) = b
+        return abs(x1 - x2) + abs(y1 - y2)
     
     
     def detectTrash(self):
@@ -97,6 +125,45 @@ class Roomba(Agent):
             # "Clean up" the trash agent
             self.model.grid.remove_agent(trash_agent)
             self.lowerBattery()
+    
+    def backHome(self):
+        print("In back home")
+        self.visited_cells.add((1,1))
+        self.visited_cells.add(self.pos)
+        G = nx.Graph()  # Create an empty graph
+        # G = nx.grid_2d_graph(*self.model.grid.width)  # Create a grid graph
+        coordinates = list(self.visited_cells)  # Convert set to list
+        self.graph.add_nodes_from(coordinates)
+        #Create edges between all nodes
+        for i in range(len(coordinates)):
+            for j in range(i+1, len(coordinates)):
+                self.graph.add_edge(coordinates[i], coordinates[j])
+
+        start_node = self.pos
+        goal_node = (1, 1)
+        print("Start Node:", start_node)
+        
+        # Print the coordinates and edges for debugging
+        print("Coordinates:", coordinates)
+        print("Edges:", G.edges)
+        
+        path = self.a_star_search(self.graph, start_node, goal_node,)
+        print("Path:", path)
+
+        if path and len(path) > 1:
+            next_position = path[1]
+            print("Next Position:", next_position)
+
+            # Move the agent
+            self.model.grid.move_agent(self, next_position)
+            self.pos = next_position  # Update the agent's position in the Mesa model
+
+            # Update visited_cells
+            self.visited_cells.add(next_position)
+            return path
+        else:
+            print("No valid path found.")
+            return None
 
     
     def detectObstacle(self):
@@ -174,7 +241,7 @@ class Roomba(Agent):
 
         self.model.grid.move_agent(self, self.visited[-1])
 
-    def detectCharging(sFalse):
+    def detectCharging(self):
         if self.battery >= 100:
             self.charging = False
             return
@@ -192,7 +259,14 @@ class Roomba(Agent):
         """
         self.move()
         self.detectTrash()
-        self.detectObstacle()
+        # self.detectObstacle()
+        # path_to_home = self.backHome()
+        # if len(path_to_home) <= self.battery:
+        #     self.backHome()
+        #     self.detectCharging()
+        if self.battery <=53:
+            self.backHome()
+            self.detectCharging()
         # self.ExploreCell()
         # self.detectCharging()
         
