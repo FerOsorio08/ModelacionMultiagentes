@@ -115,11 +115,13 @@ public class ApplyTransforms : MonoBehaviour
 
         Matrix4x4 moveWheel1 = HW_Transforms.TranslationMat(0.9f,0.35f,1.5f);
         Matrix4x4 moveWheel2 = HW_Transforms.TranslationMat(-0.9f,0.35f,1.5f);
-        Matrix4x4 rotateWheel = HW_Transforms.RotateMat(90, AXIS.X);
+        // Matrix4x4 rotateWheel = HW_Transforms.RotateMat(90, AXIS.X);
 
         Matrix4x4 moveWheel3 = HW_Transforms.TranslationMat(0.9f,0.35f,-1.4f);
         Matrix4x4 moveWheel4 = HW_Transforms.TranslationMat(-0.9f,0.35f,-1.4f);
         Matrix4x4 scaleWheel = HW_Transforms.ScaleMat(.2f,.2f,.2f);
+
+        Matrix4x4 rotateWheelinOrigin = HW_Transforms.RotateMat(-90*Time.time, AXIS.X);
         
 
         //combine the matrices
@@ -150,28 +152,28 @@ public class ApplyTransforms : MonoBehaviour
         {
             Vector4 temp1 = new Vector4(wheel1Vertices[i].x, wheel1Vertices[i].y, wheel1Vertices[i].z, 1);
 
-            wheel1NewVertices[i] = composite * moveWheel1 * scaleWheel * temp1;
+            wheel1NewVertices[i] = composite * moveWheel1 *rotateWheelinOrigin* scaleWheel * temp1;
         }
 
         for(int i = 0; i<wheel2NewVertices.Length; i++)
         {
             Vector4 temp2 = new Vector4(wheel2Vertices[i].x, wheel2Vertices[i].y, wheel2Vertices[i].z, 1);
 
-            wheel2NewVertices[i] = composite * moveWheel2 *scaleWheel *temp2;
+            wheel2NewVertices[i] = composite * moveWheel2 * rotateWheelinOrigin*scaleWheel *temp2;
         }
 
         for(int i = 0; i<wheel3NewVertices.Length; i++)
         {
             Vector4 temp3 = new Vector4(wheel3Vertices[i].x, wheel3Vertices[i].y, wheel3Vertices[i].z, 1);
 
-            wheel3NewVertices[i] = composite  * moveWheel3 * scaleWheel *temp3;
+            wheel3NewVertices[i] = composite  * moveWheel3* rotateWheelinOrigin * scaleWheel *temp3;
         }
 
         for(int i = 0; i<wheel4NewVertices.Length; i++)
         {
             Vector4 temp4 = new Vector4(wheel4Vertices[i].x, wheel4Vertices[i].y, wheel4Vertices[i].z, 1);
 
-            wheel4NewVertices[i] = composite * moveWheel4* scaleWheel*temp4;
+            wheel4NewVertices[i] = composite * moveWheel4* rotateWheelinOrigin* scaleWheel*temp4;
         }
 
 
