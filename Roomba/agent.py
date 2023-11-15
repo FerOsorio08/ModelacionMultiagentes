@@ -15,7 +15,6 @@ class Roomba(Agent):
             model: Model reference for the agent
         """
         super().__init__(unique_id, model)
-        ## 1 = North, 2 = North-East, 3 = East, 4 = South-East, 5 = South, 6 = South-West, 7 = West, 8 = North-West
 
         self.direction = 4
         self.steps_taken = 0
@@ -38,6 +37,7 @@ class Roomba(Agent):
         Determines if the agent can move in the direction that was chosen
         """
         if self.battery == 0:
+            print("battery 0")
             self.model.num_agents -= 1
             return
         

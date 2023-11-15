@@ -1,7 +1,7 @@
 from mesa import Model, agent
 from mesa.time import RandomActivation
 from mesa.space import MultiGrid
-from mesa import DataCollector
+from mesa import Model, DataCollector
 from agent import Roomba, ObstacleAgent, TrashAgent, Charging
 
 class RandomModel(Model):
@@ -79,3 +79,15 @@ class RandomModel(Model):
         '''Advance the model by one step.'''
         self.schedule.step()
         self.datacollector.collect(self)
+    #     if self.count_type(self, TrashAgent) == 0:
+    #         self.running = False
+    
+    # def count_type(model, agent_type):
+    #     """
+    #     Helper method to count trees in a given condition in a given model.
+    #     """
+    #     count = 0
+    #     for agent in model.schedule.agents:
+    #         if agent_type == type(agent):
+    #             count += 1
+    #     return count
