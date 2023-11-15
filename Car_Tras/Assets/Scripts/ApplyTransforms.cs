@@ -102,14 +102,14 @@ public class ApplyTransforms : MonoBehaviour
         //create the matrices
 
         // Calculate the angle in radians
-        float angleRadians = Mathf.Atan2(displacement.y, displacement.x);
+        float angleRadians = Mathf.Atan2(displacement.z, displacement.x);
 
         // Convert the angle to degrees
-        float angleDegrees = angleRadians * Mathf.Rad2Deg;
+        float angleDegrees = angleRadians * Mathf.Rad2Deg -90;
         Matrix4x4 move= HW_Transforms.TranslationMat(displacement.x *Time.time , displacement.y *Time.time, displacement.z *Time.time);
         Matrix4x4 moveOrigin = HW_Transforms.TranslationMat(-displacement.x, -displacement.y, -displacement.z);
         Matrix4x4 moveObject = HW_Transforms.TranslationMat(displacement.x, displacement.y, displacement.z);
-        Matrix4x4 rotate = HW_Transforms.RotateMat(angleDegrees , rotationAxis);
+        Matrix4x4 rotate = HW_Transforms.RotateMat(angleDegrees  , rotationAxis);
         
         Matrix4x4 spoilerMove = HW_Transforms.TranslationMat(0,1.05f,-2.31f);
 
