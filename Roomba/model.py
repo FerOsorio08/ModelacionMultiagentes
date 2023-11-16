@@ -20,6 +20,7 @@ class RandomModel(Model):
         self.schedule = RandomActivation(self)
         
         self.running = True 
+        
 
         self.datacollector = DataCollector( 
         agent_reporters={"Steps": lambda a: a.steps_taken if isinstance(a, Roomba) else 0})
@@ -40,7 +41,7 @@ class RandomModel(Model):
         # Add the agent to a random empty grid cell
         for i in range(self.num_agents):
 
-            a = Roomba(i+1000, self) 
+            a = Roomba(i+1000, self, initialPos = (1,1)) 
             b = Charging(i+3000, self)
             self.schedule.add(a)
             self.schedule.add(b)
