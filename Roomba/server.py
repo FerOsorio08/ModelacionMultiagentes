@@ -33,10 +33,12 @@ model_params = {"N":1, "width":12, "height":12}
 grid = CanvasGrid(agent_portrayal, 12, 12, 500, 500)
 
 bar_chart = BarChartModule(
-    [{"Label":"Steps", "Color":"#AA0000"}], 
-    scope="agent", sorting="ascending", sort_by="Steps")
+    [{"Label": "Steps", "Color": "#AA0000"}],
+    scope="agent", sorting="ascending", sort_by="Steps" )
 
-server = ModularServer(RandomModel, [grid], "Random Agents", model_params)
+# bar_chart2 = BarChartModule([{"Label": "Deleted_Count", "Color": "red"}], scope="model")
+
+server = ModularServer(RandomModel, [grid, bar_chart], "Random Agents", model_params)
                        
 server.port = 8521 # The default
 server.launch()

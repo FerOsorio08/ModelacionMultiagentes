@@ -26,6 +26,7 @@ class Roomba(Agent):
         self.graph = nx.Graph()
         self.graph.add_node(initialPos)
         self.initialPos = initialPos
+        self.battery_thresholds = 0
 
     def lowerBattery(self):
         """
@@ -111,82 +112,63 @@ class Roomba(Agent):
     
     def CreateGraph(self):
         """Creates a graph of the visited cells"""
-        self.visited_cells.add((self.initialPos))
+        self.visited_cells.add(self.initialPos)
         self.visited_cells.add(self.pos)
         coordinates = list(self.visited_cells)
         self.graph.add_nodes_from(coordinates)
         self.graph.add_edges_from([(coordinates[i], coordinates[i + 1]) for i in range(len(coordinates) - 1)] + [(coordinates[-1], coordinates[0])])
         # Create edges between adjacent nodes
-        # print("Coordinates:", coordinates)
-        # print("Edges:", self.graph.edges)
-        for i in range(len(coordinates) - 1):
+        for i in range(len(coordinates)):
             x1, y1 = coordinates[i]
             for j in range(i + 1, len(coordinates)):
                 x2, y2 = coordinates[j]
                 if abs(x1 - x2) <= 1 and abs(y1 - y2) <= 1:
                     self.graph.add_edge(coordinates[i], coordinates[j])
+
         return self.graph
     
-    def backHome(self, path):
-        print("In backHome")
-        j = len(path) - 1
-        path_position = path[j]
-        next_node = path[j[0]]
-        # while path_position != self.initialPos:
-        #     j += 1
-        #     path_position = path[j]
-        #     next_node = path[j + 1]
-        # for i in range(len(path) - 1):
-        #     current_node = path[i]
-        #     next_node = path[i + 1]
-
-        #     # Move the agent
-        #     self.model.grid.move_agent(self, next_node)
-        #     self.pos = next_node  # Update the agent's position in the Mesa model
-
-        #     # Update visited_cells
-        #     self.visited_cells.add(next_node)
-
-        #     print(f"Moving from {current_node} to {next_node}")
-
-        # Exclude the goal node from the path
-        self.model.grid.move_agent(self, next_node)
-        path = path-1
-        goal_node = path[-1]
-        print("Goal Node:", goal_node)
-        print("Moving back to the initial position:", self.initialPos)
+    def create_graph(self):
+        self.graph = nx.grid_graph(dim=[self.model.grid.width, self.model.grid.height])
+        for x in range(self.model.grid.width):
+            for y in range(self.model.grid.height):
+                cell_contents = self.model.grid.get_cell_list_contents((x, y))
+                if any(isinstance(agent, ObstacleAgent) for agent in cell_contents):
+                    # Remove the node if an obstacle is found in the cell
+                    self.graph.remove_node((x, y))
+        return self.graph
     
-    # def GoThroughPath(self, path):
-    #     """Moves the agent through the path"""
-    #     print("moving through path")
-
-    #     if len(path) > 1:
-    #         current_node = path[0]
-    #         next_node = path[1]
-
-    #         # Move the agent
-    #         self.model.grid.move_agent(self, next_node)
-    #         self.pos = next_node
-
-    #         # Remove the first node from the path
-    #         path.pop(0)
-
-    #         print(f"Moving from {current_node} to {next_node}")
-    #     else:
-    #         print("No more nodes in the path.")
-
+    
     def GoThroughPath(self, path):
         """Moves the agent through the path"""
-        print("moving through path")
-        for i in range(len(path) - 1):
-            current_node = path[i]
-            print ("current node", current_node)
-            next_node = path[i + 1]
-            print ("next node", next_node)
+        print("Moving through path")
+        if path:
+            current_node = path[0]
+            next_node = path[1]
 
             # Move the agent
             self.model.grid.move_agent(self, next_node)
             self.pos = next_node
+
+            # Remove the first node from the path
+            path.pop(0)
+
+            print(f"Moving from {current_node} to {next_node}")
+        else:
+            print("No more nodes in the path.")
+
+
+    # def GoThroughPath(self, path):
+    #     """Moves the agent through the path"""
+    #     print("moving through path")
+    #     for i in range(len(path) - 1):
+    #         current_node = path[i]
+    #         print ("current node", current_node)
+    #         next_node = path[i + 1]
+    #         print ("next node", next_node)
+
+    #         # Move the agent
+    #         self.model.grid.move_agent(self, next_node)
+    #         self.pos = next_node
 
 
 
@@ -202,9 +184,24 @@ class Roomba(Agent):
                 print("Charging +5")
                 self.battery += 5
                 # self.visited = []
+    
+    def battery_threshold(self):
+        charging_station = self.find_nearest_charging_station()
+        charging_path = self.a_star_search(self.create_graph(), self.pos, charging_station)
+
+        if charging_path is not None:
+            charging_path_length = len(charging_path)
+            threshold = charging_path_length + 5  # Add a little extra for safety
+            return threshold
+        else:
+            # If no charging path is found, return 0 (no additional battery needed)
+            return 0
+        
+
 
     def step(self):
         """Determines the new direction it will take, and then moves"""
+       
         if self.battery == 0:
             print("Battery depleted. Agent shutting down.")
             self.model.num_agents -= 1
@@ -212,23 +209,21 @@ class Roomba(Agent):
 
         # Check if the agent needs to move back home
         charging_station = self.find_nearest_charging_station()
-        charging_path = self.a_star_search(self.CreateGraph(), self.pos, charging_station)
+        charging_path = self.a_star_search(self.create_graph(), self.pos, charging_station)
+        print("BATTTERY IS AT: ", self.battery, "AND LENGTH TO CHARGING STATION IS: ", len(charging_path))
+        self.battery_thresholds = self.battery_threshold()
+        print("BATTERY THRESHOLD IS: ", self.battery_thresholds)
 
         if charging_path is not None:
             print("Charging path is not None")
-            if charging_path and len(charging_path) > 4 and len(charging_path) <= self.battery:
+            if self.battery <= self.battery_thresholds :
                 print("Charging path:", charging_path)
                 # Move back home only if the path length is less than or equal to the remaining battery
                 # if charging_path is not length 1
-                if len(charging_path) != 1:
-                    while charging_path:
-                        self.GoThroughPath(charging_path)
-                        if self.pos == charging_station:
-                            while self.battery <= 100:
-                                print("Charging +5")
-                                self.detectCharging()
-                            break
-                        break
+                self.GoThroughPath(charging_path)
+                if self.pos == charging_station:
+                    self.detectCharging()
+                    
             elif self.battery > len(charging_path):
                 self.move()
                 # Move the agent
@@ -239,13 +234,13 @@ class Roomba(Agent):
                     self.detectTrash()
         else:
             print("Just moving")
-            # self.move()
-            # # Move the agent
-            # # if there is trash in the cell, clean it
-            # cell_contents = self.model.grid.get_cell_list_contents(self.pos)
-            # if any(isinstance(agent, TrashAgent) for agent in cell_contents):
-            #     # There is at least one TrashAgent in the cell
-            #     self.detectTrash()
+            self.move()
+            # Move the agent
+            # if there is trash in the cell, clean it
+            cell_contents = self.model.grid.get_cell_list_contents(self.pos)
+            if any(isinstance(agent, TrashAgent) for agent in cell_contents):
+                # There is at least one TrashAgent in the cell
+                self.detectTrash()
 
             
 
@@ -255,11 +250,13 @@ class Roomba(Agent):
     def find_nearest_charging_station(self):
         """Finds the nearest charging station using simple distance calculation."""
         charging_stations = [agent.pos for agent in self.model.schedule.agents if isinstance(agent, Charging)]
-        charging_stations.append(self.initialPos)
+        # charging_stations.append(self.initialPos)
         # charging_stations = list(set(charging_stations) - self.visited_cells)
         self.graph.add_nodes_from(charging_stations)
         distances = [self.heuristic(self.pos, station) for station in charging_stations]
         if distances:
+            print("Charging stations:", charging_stations)
+            print("Choosen charging station:", charging_stations[distances.index(min(distances))])
             return charging_stations[distances.index(min(distances))]
         else:
             # No charging stations found, return the initial position as a fallback

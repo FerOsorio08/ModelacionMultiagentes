@@ -22,8 +22,17 @@ class RandomModel(Model):
         # self.running = True 
         
         self.trash_count = 0
+        # self.datacollector = DataCollector( 
+        # agent_reporters={"Steps": lambda a: a.steps_taken if isinstance(a, Roomba) else 0})
         self.datacollector = DataCollector( 
-        agent_reporters={"Steps": lambda a: a.steps_taken if isinstance(a, Roomba) else 0})
+            agent_reporters={
+            "Steps": lambda a: a.steps_taken if isinstance(a, Roomba) else 0}
+            ,
+            model_reporters={
+                    "Deleted_Count": lambda model: model.deleted_count
+                }
+        
+        )
 
         # Creates the border of the grid
         border = [(x,y) for y in range(height) for x in range(width) if y in [0, height-1] or x in [0, width - 1]]
@@ -64,7 +73,7 @@ class RandomModel(Model):
                 
 
         # Add trash to the grid
-        for i in range(10):
+        for i in range(20):
             pos = pos_gen(self.grid.width, self.grid.height)
             while (not self.grid.is_cell_empty(pos)):
                 pos = pos_gen(self.grid.width, self.grid.height)
@@ -91,9 +100,5 @@ class RandomModel(Model):
             print("All trash cleaned up!")
             self.running = False
 
-    # def count_type(self):
-    #     """
-    #     Helper method to count agents of a given type in a given model.
-    #     """
-    #     if self.trash_count == 0:
-    #         return 0
+    def deleted_count(self):
+        return self.trash_count
