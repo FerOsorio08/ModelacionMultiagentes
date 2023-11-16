@@ -27,11 +27,6 @@ class Roomba(Agent):
         self.graph.add_node(initialPos)
         self.initialPos = initialPos
 
-        # obstacle_neighbors = []
-        # trash_neighbors = []
-        # charging_neighbors = []
-        # unvisited_neighbors = []
-
     def lowerBattery(self):
         """
         Lowers the battery of the agent by 1
@@ -52,7 +47,7 @@ class Roomba(Agent):
         free_spaces = [possible_steps[i] for i in range(len(possible_steps)) if self.model.grid.is_cell_empty(possible_steps[i])]
         trash_neighbors = [agent.pos for agent in self.model.grid.get_cell_list_contents(possible_steps) if isinstance(agent, TrashAgent)]
 
-        next_moves = trash_neighbors if trash_neighbors else free_spaces
+        next_moves = trash_neighbors if trash_neighbors else free_spaces 
         next_moves_non_visited = list(set(next_moves) - self.visited_cells)
 
         if next_moves_non_visited:
@@ -163,26 +158,6 @@ class Roomba(Agent):
             self.pos = next_node
 
 
-    
-    def ExploreCell(self):
-        """
-        Detects if there is an obstacle in the same cell as the agent
-        """
-        possible_steps = self.model.grid.get_neighborhood(
-            self.pos,
-            moore=True, # Boolean for whether to use Moore neighborhood (including diagonals) or Von Neumann (only up/down/left/right).
-            include_center=False) 
-        # Boolean for whether to include the center cell itself as one of the neighbors
-
-        free_cell = [neighbor for neighbor in possible_steps if neighbor not in self.visited_cells]
-        next_move = self.random.choice(free_cell)
-        # cell_contents = other.model.grid.get_cell_list_contents(other.pos)
-        # obstacle_agents = [agent for agent in cell_contents if isinstance(agent, ObstacleAgent)]
-        self.model.grid.move_agent(self, next_move)
-        self.visited_cells.add(self.pos)
-        self.steps_taken += 1
-        self.lowerBattery()
-
 
     def detectCharging(self):
         if self.battery >= 100:
@@ -197,20 +172,6 @@ class Roomba(Agent):
                 self.battery += 100
                 # self.visited = []
 
-    
-    # def step(self):
-    #     """ 
-    #     Determines the new direction it will take, and then moves
-    #     """
-    #     self.move()
-    #     self.detectTrash()
-    #     # path_to_home = self.backHome()
-    #     if self.battery <= 53:
-    #         self.backHome()
-    #     #     self.detectCharging()
-    #     # if len(path_to_home) <= self.battery:
-    #     #     self.backHome()
-    #     #     self.detectCharging()
     def step(self):
         """ 
         Determines the new direction it will take, and then moves
@@ -221,33 +182,53 @@ class Roomba(Agent):
             return
 
         # Check if the agent needs to move back home
-        charging_path = self.a_star_search(self.CreateGraph(), self.pos, self.initialPos)
-        if charging_path and len(charging_path) > 4 and len(charging_path) <= self.battery:
-            print("Charging path:", charging_path)
-            # Move back home only if the path length is less than or equal to the remaining battery
-            #if charging_path is not length 1
-            if len(charging_path) != 1:
-                self.GoThroughPath(charging_path)
-                if self.pos == self.initialPos:
-                    self.detectCharging()
-            
-        elif self.battery > len(charging_path):
+        charging_station = self.find_nearest_charging_station()
+        charging_path = self.a_star_search(self.CreateGraph(), self.pos, charging_station)
+
+        if charging_path is not None: 
+            print("charging path is not none")
+            if charging_path and len(charging_path) > 4 and len(charging_path) <= self.battery:
+                print("Charging path:", charging_path)
+                # Move back home only if the path length is less than or equal to the remaining battery
+                # if charging_path is not length 1
+                if len(charging_path) != 1:
+                    self.GoThroughPath(charging_path)
+                    if self.pos == charging_station:
+                        self.detectCharging()
+
+            elif self.battery > len(charging_path):
+                self.move()
+                # Move the agent
+                # if there is trash in the cell, clean it
+                cell_contents = self.model.grid.get_cell_list_contents(self.pos)
+                if any(isinstance(agent, TrashAgent) for agent in cell_contents):
+                    # There is at least one TrashAgent in the cell
+                    self.detectTrash()
+        else: 
+            print("just moving")
             self.move()
             # Move the agent
-            #if there is trash in the cell, clean it
+            # if there is trash in the cell, clean it
             cell_contents = self.model.grid.get_cell_list_contents(self.pos)
             if any(isinstance(agent, TrashAgent) for agent in cell_contents):
                 # There is at least one TrashAgent in the cell
                 self.detectTrash()
 
-            # Detect and clean trash if present
-            # self.detectTrash()
-
-    
-
         # Other actions as needed
         # self.ExploreCell()
 
+    def find_nearest_charging_station(self):
+        """Finds the nearest charging station using simple distance calculation."""
+        charging_stations = [agent.pos for agent in self.model.schedule.agents if isinstance(agent, Charging)]
+        charging_stations.append(self.initialPos)
+        # charging_stations = list(set(charging_stations) - self.visited_cells)
+        self.graph.add_nodes_from(charging_stations)
+        distances = [self.heuristic(self.pos, station) for station in charging_stations]
+        if distances:
+            return charging_stations[distances.index(min(distances))]
+        else:
+            # No charging stations found, return the initial position as a fallback
+            return self.initialPos
 
 
 
