@@ -182,7 +182,7 @@ class Roomba(Agent):
         for agent in station:
             if isinstance(agent, Charging):
                 print("Charging +5")
-                self.battery += 5
+                return 5
                 # self.visited = []
     
     def battery_threshold(self):
@@ -222,7 +222,14 @@ class Roomba(Agent):
                 # if charging_path is not length 1
                 self.GoThroughPath(charging_path)
                 if self.pos == charging_station:
-                    self.detectCharging()
+                    print("charging station pos: ", charging_station)
+                    if self.battery < 100:
+                        self.battery += self.detectCharging()
+                        #min to make sure battery doesn't go over 100
+                        self.battery = min(self.battery, 100)
+                    elif self.battery == 100:
+                        self.charging = False
+                        print("Battery is full")
                     
             elif self.battery > len(charging_path):
                 self.move()
