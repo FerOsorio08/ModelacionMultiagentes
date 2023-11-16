@@ -9,7 +9,7 @@ class Roomba(Agent):
         unique_id: Agent's ID 
         direction: Randomly chosen direction chosen from one of eight directions
     """
-    def __init__(self, unique_id, model):
+    def __init__(self, unique_id, model, initialPos):
         """
         Creates a new random agent.
         Args:
@@ -24,6 +24,8 @@ class Roomba(Agent):
         self.battery = 100
         self.charging = False
         self.graph = nx.Graph()
+        self.graph.add_node(initialPos)
+        self.initialPos = initialPos
 
         # obstacle_neighbors = []
         # trash_neighbors = []
@@ -83,6 +85,22 @@ class Roomba(Agent):
         self.steps_taken += 1
         self.lowerBattery()
 
+    def detectTrash(self):
+        """
+        Detects if there is trash in the same cell as the agent
+        """
+        cell_contents = self.model.grid.get_cell_list_contents(self.pos)
+    
+        # Check if there is a TrashAgent in the cell
+        trash_agents = [agent for agent in cell_contents if isinstance(agent, TrashAgent)]
+
+        if trash_agents:
+            # Assuming there is at most one trash agent in the cell
+            trash_agent = trash_agents[0]
+            # "Clean up" the trash agent
+            self.model.grid.remove_agent(trash_agent)
+            self.lowerBattery()
+
     def a_star_search(self, graph, start, goal):
         """A* search to find the shortest path between a start and a goal node.
         Args:
@@ -92,6 +110,7 @@ class Roomba(Agent):
         """
         # self.graph.add_node((1,1))
         # self.graph.add_node(self.pos)
+        self.graph.add_node(self.initialPos)
         x, y = start
         j, i = goal
         heuristic  = abs(x - j) + abs(y - i)
@@ -109,44 +128,47 @@ class Roomba(Agent):
         return abs(x1 - x2) + abs(y1 - y2)
     
     
-    def detectTrash(self):
-        """
-        Detects if there is trash in the same cell as the agent
-        """
-        cell_contents = self.model.grid.get_cell_list_contents(self.pos)
-    
-        # Check if there is a TrashAgent in the cell
-        trash_agents = [agent for agent in cell_contents if isinstance(agent, TrashAgent)]
-        print("trash", trash_agents)
-
-        if trash_agents:
-            # Assuming there is at most one trash agent in the cell
-            trash_agent = trash_agents[0]
-            # "Clean up" the trash agent
-            self.model.grid.remove_agent(trash_agent)
-            self.lowerBattery()
+    def CreateGraph(self):
+        """Creates a graph of the visited cells"""
+        self.visited_cells.add((self.initialPos))
+        self.visited_cells.add(self.pos)
+        coordinates = list(self.visited_cells)
+        self.graph.add_nodes_from(coordinates)
+        # Create edges between adjacent nodes
+        print("Coordinates:", coordinates)
+        print("Edges:", self.graph.edges)
+        for i in range(len(coordinates) - 1):
+            x1, y1 = coordinates[i]
+            for j in range(i + 1, len(coordinates)):
+                x2, y2 = coordinates[j]
+                if abs(x1 - x2) <= 1 and abs(y1 - y2) <= 1:
+                    self.graph.add_edge(coordinates[i], coordinates[j])
+        return self.graph
     
     def backHome(self):
         print("In back home")
-        self.visited_cells.add((1,1))
-        self.visited_cells.add(self.pos)
-        G = nx.Graph()  # Create an empty graph
-        # G = nx.grid_2d_graph(*self.model.grid.width)  # Create a grid graph
-        coordinates = list(self.visited_cells)  # Convert set to list
-        self.graph.add_nodes_from(coordinates)
-        #Create edges between all nodes
-        # self.graph.add_edges_from([(coordinates[i], coordinates[i + 1]) for i in range(len(coordinates) - 1)] + [(coordinates[-1], coordinates[0])])
-        for i in range(len(coordinates) - 1):
-            self.graph.add_edge(coordinates[i], coordinates[i + 1])
+        # self.visited_cells.add((1, 1))
+        # self.visited_cells.add(self.pos)
+
+        # coordinates = list(self.visited_cells)  # Convert set to list
+        # self.graph.add_nodes_from(coordinates)
+
+        # # Create edges between adjacent nodes
+        # for i in range(len(coordinates) - 1):
+        #     x1, y1 = coordinates[i]
+        #     for j in range(i + 1, len(coordinates)):
+        #         x2, y2 = coordinates[j]
+        #         if abs(x1 - x2) <= 1 and abs(y1 - y2) <= 1:
+        #             self.graph.add_edge(coordinates[i], coordinates[j])
+        self.CreateGraph()
 
         start_node = self.pos
-        goal_node = (1, 1)
+        goal_node = self.initialPos
         print("Start Node:", start_node)
-        
+
         # Print the coordinates and edges for debugging
-        print("Coordinates:", coordinates)
-        print("Edges:", G.edges)
         
+
         path = self.a_star_search(self.graph, start_node, goal_node,)
         print("Path:", path)
 
@@ -205,19 +227,42 @@ class Roomba(Agent):
                 self.battery += 5
                 self.visited = []
 
+    
+    # def step(self):
+    #     """ 
+    #     Determines the new direction it will take, and then moves
+    #     """
+    #     self.move()
+    #     self.detectTrash()
+    #     # path_to_home = self.backHome()
+    #     if self.battery <= 53:
+    #         self.backHome()
+    #     #     self.detectCharging()
+    #     # if len(path_to_home) <= self.battery:
+    #     #     self.backHome()
+    #     #     self.detectCharging()
     def step(self):
         """ 
         Determines the new direction it will take, and then moves
         """
         self.move()
         self.detectTrash()
-        # path_to_home = self.backHome()
-        # if self.battery <= 53:
-        #     self.backHome()
-        #     self.detectCharging()
-        # if len(path_to_home) <= self.battery:
-        #     self.backHome()
-        #     self.detectCharging()
+        print("Initial Position:", self.initialPos)  # Fix here
+        
+        # Calculate the path back to the charging station
+        charging_path = self.a_star_search(self.CreateGraph(), self.pos, self.initialPos)  # Fix here
+
+        if charging_path and len(charging_path) == self.battery:
+            print("Charging path:", charging_path)
+            # Move back home only if the path length is equal to the battery level
+            self.backHome()
+        else:
+            self.detectCharging()
+
+        # Other actions as needed
+        # self.ExploreCell()
+
+
 
 
 class ObstacleAgent(Agent):
