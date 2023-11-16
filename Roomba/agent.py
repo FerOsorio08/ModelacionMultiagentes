@@ -119,8 +119,8 @@ class Roomba(Agent):
         self.graph.add_nodes_from(coordinates)
         self.graph.add_edges_from([(coordinates[i], coordinates[i + 1]) for i in range(len(coordinates) - 1)] + [(coordinates[-1], coordinates[0])])
         # Create edges between adjacent nodes
-        print("Coordinates:", coordinates)
-        print("Edges:", self.graph.edges)
+        # print("Coordinates:", coordinates)
+        # print("Edges:", self.graph.edges)
         for i in range(len(coordinates) - 1):
             x1, y1 = coordinates[i]
             for j in range(i + 1, len(coordinates)):
@@ -148,14 +148,21 @@ class Roomba(Agent):
         goal_node = path[-1]
         print("Goal Node:", goal_node)
         print("Moving back to the initial position:", self.initialPos)
-
     
-    def detectObstacle(self):
-        """Detect the Obstacle Agents in neighboring cells and avoid them"""
-        possible_steps = self.model.grid.get_neighborhood(
-            self.pos,
-            moore=True, # Boolean for whether to use Moore neighborhood (including diagonals) or Von Neumann (only up/down/left/right).
-            include_center=False) 
+    def GoThroughPath(self, path):
+        """Moves the agent through the path"""
+        print("moving through path")
+        for i in range(len(path) - 1):
+            current_node = path[i]
+            print ("current node", current_node)
+            next_node = path[i + 1]
+            print ("next node", next_node)
+
+            # Move the agent
+            self.model.grid.move_agent(self, next_node)
+            self.pos = next_node
+
+
     
     def ExploreCell(self):
         """
@@ -218,25 +225,25 @@ class Roomba(Agent):
         if charging_path and len(charging_path) > 4 and len(charging_path) <= self.battery:
             print("Charging path:", charging_path)
             # Move back home only if the path length is less than or equal to the remaining battery
-            self.backHome(charging_path)
-            if self.pos == self.initialPos:
-                self.detectCharging()
-        else:
-            # Move the agent
+            #if charging_path is not length 1
+            if len(charging_path) != 1:
+                self.GoThroughPath(charging_path)
+                if self.pos == self.initialPos:
+                    self.detectCharging()
+            
+        elif self.battery > len(charging_path):
             self.move()
+            # Move the agent
+            #if there is trash in the cell, clean it
+            cell_contents = self.model.grid.get_cell_list_contents(self.pos)
+            if any(isinstance(agent, TrashAgent) for agent in cell_contents):
+                # There is at least one TrashAgent in the cell
+                self.detectTrash()
 
             # Detect and clean trash if present
-            self.detectTrash()
+            # self.detectTrash()
 
-        print("Initial Position:", self.initialPos)  # Fix here
-        
-        # Calculate the path back to the charging station
-
-        # Adjust this threshold to control when the agent decides to go back home
-        battery_threshold = 10
-
-        
-       
+    
 
         # Other actions as needed
         # self.ExploreCell()
