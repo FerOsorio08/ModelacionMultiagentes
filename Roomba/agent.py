@@ -42,44 +42,27 @@ class Roomba(Agent):
         """ 
         Determines if the agent can move in the direction that was chosen
         """
-        if self.battery == 0:
-            print("battery 0")
-            self.model.num_agents -= 1
-            return
         
         possible_steps = self.model.grid.get_neighborhood(
             self.pos,
-            moore=True, # Boolean for whether to use Moore neighborhood (including diagonals) or Von Neumann (only up/down/left/right).
-            include_center=False # Boolean for whether to include the center cell itself as one of the neighbors
-            )
-        
-        trash_neighbors = self.model.grid.get_cell_list_contents(possible_steps)
-        trash_pos = []
-        for agent in trash_neighbors:
-            if isinstance(agent, TrashAgent):
-                trash_pos.append(agent.pos)
-        
-        # unvisited_neighbors = [neighbor for neighbor in possible_steps if neighbor not in self.visited_cells]
-        # next_move = self.random.choice(unvisited_neighbors)
-        free_spaces = list(map(self.model.grid.is_cell_empty, possible_steps))
-        next_moves = []
-        if trash_pos:
-            next_moves = trash_pos
-        else :
-            for i in range(len(free_spaces)):
-                if free_spaces[i]:
-                    next_moves.append(possible_steps[i])
-        next_moves_nonVisited = list(set(next_moves) - set(self.visited_cells))
-        next_move = self.random.choice(next_moves_nonVisited) if len(next_moves_nonVisited) > 0 else self.random.choice(next_moves)
+            moore=True,
+            include_center=False
+        )
 
-        
+        free_spaces = [possible_steps[i] for i in range(len(possible_steps)) if self.model.grid.is_cell_empty(possible_steps[i])]
+        trash_neighbors = [agent.pos for agent in self.model.grid.get_cell_list_contents(possible_steps) if isinstance(agent, TrashAgent)]
 
-        # Now move: this for many roombas
-        # if self.random.random() < 0.1:
-        #     self.visited_cells.add(self.pos)
-        #     self.model.grid.move_agent(self, next_move)
-        #     self.steps_taken += 1
-        #Move for 1 roomba
+        next_moves = trash_neighbors if trash_neighbors else free_spaces
+        next_moves_non_visited = list(set(next_moves) - self.visited_cells)
+
+        if next_moves_non_visited:
+            next_move = self.random.choice(next_moves_non_visited)
+        elif next_moves:
+            next_move = self.random.choice(next_moves)
+        else:
+            # No valid move, stay in the current position
+            return
+
         self.visited_cells.add(self.pos)
         self.model.grid.move_agent(self, next_move)
         self.steps_taken += 1
@@ -134,6 +117,7 @@ class Roomba(Agent):
         self.visited_cells.add(self.pos)
         coordinates = list(self.visited_cells)
         self.graph.add_nodes_from(coordinates)
+        self.graph.add_edges_from([(coordinates[i], coordinates[i + 1]) for i in range(len(coordinates) - 1)] + [(coordinates[-1], coordinates[0])])
         # Create edges between adjacent nodes
         print("Coordinates:", coordinates)
         print("Edges:", self.graph.edges)
@@ -145,47 +129,25 @@ class Roomba(Agent):
                     self.graph.add_edge(coordinates[i], coordinates[j])
         return self.graph
     
-    def backHome(self):
-        print("In back home")
-        # self.visited_cells.add((1, 1))
-        # self.visited_cells.add(self.pos)
-
-        # coordinates = list(self.visited_cells)  # Convert set to list
-        # self.graph.add_nodes_from(coordinates)
-
-        # # Create edges between adjacent nodes
-        # for i in range(len(coordinates) - 1):
-        #     x1, y1 = coordinates[i]
-        #     for j in range(i + 1, len(coordinates)):
-        #         x2, y2 = coordinates[j]
-        #         if abs(x1 - x2) <= 1 and abs(y1 - y2) <= 1:
-        #             self.graph.add_edge(coordinates[i], coordinates[j])
-        self.CreateGraph()
-
-        start_node = self.pos
-        goal_node = self.initialPos
-        print("Start Node:", start_node)
-
-        # Print the coordinates and edges for debugging
-        
-
-        path = self.a_star_search(self.graph, start_node, goal_node,)
-        print("Path:", path)
-
-        if path and len(path) > 1:
-            next_position = path[1]
-            print("Next Position:", next_position)
+    def backHome(self, path):
+        print("In backHome")
+        for i in range(len(path) - 1):
+            current_node = path[i]
+            next_node = path[i + 1]
 
             # Move the agent
-            self.model.grid.move_agent(self, next_position)
-            self.pos = next_position  # Update the agent's position in the Mesa model
+            self.model.grid.move_agent(self, next_node)
+            self.pos = next_node  # Update the agent's position in the Mesa model
 
             # Update visited_cells
-            self.visited_cells.add(next_position)
-            return path
-        else:
-            print("No valid path found.")
-            return None
+            self.visited_cells.add(next_node)
+
+            print(f"Moving from {current_node} to {next_node}")
+
+        # Exclude the goal node from the path
+        goal_node = path[-1]
+        print("Goal Node:", goal_node)
+        print("Moving back to the initial position:", self.initialPos)
 
     
     def detectObstacle(self):
@@ -224,8 +186,9 @@ class Roomba(Agent):
         station = self.model.grid.get_cell_list_contents([self.pos])
         for agent in station:
             if isinstance(agent, Charging):
-                self.battery += 5
-                self.visited = []
+                print("Charging to 100%")
+                self.battery += 100
+                # self.visited = []
 
     
     # def step(self):
@@ -245,19 +208,35 @@ class Roomba(Agent):
         """ 
         Determines the new direction it will take, and then moves
         """
-        self.move()
-        self.detectTrash()
+        if self.battery == 0:
+            print("Battery depleted. Agent shutting down.")
+            self.model.num_agents -= 1
+            return
+
+        # Check if the agent needs to move back home
+        charging_path = self.a_star_search(self.CreateGraph(), self.pos, self.initialPos)
+        if charging_path and len(charging_path) > 4 and len(charging_path) <= self.battery:
+            print("Charging path:", charging_path)
+            # Move back home only if the path length is less than or equal to the remaining battery
+            self.backHome(charging_path)
+            if self.pos == self.initialPos:
+                self.detectCharging()
+        else:
+            # Move the agent
+            self.move()
+
+            # Detect and clean trash if present
+            self.detectTrash()
+
         print("Initial Position:", self.initialPos)  # Fix here
         
         # Calculate the path back to the charging station
-        charging_path = self.a_star_search(self.CreateGraph(), self.pos, self.initialPos)  # Fix here
 
-        if charging_path and len(charging_path) == self.battery:
-            print("Charging path:", charging_path)
-            # Move back home only if the path length is equal to the battery level
-            self.backHome()
-        else:
-            self.detectCharging()
+        # Adjust this threshold to control when the agent decides to go back home
+        battery_threshold = 10
+
+        
+       
 
         # Other actions as needed
         # self.ExploreCell()
