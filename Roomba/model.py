@@ -19,9 +19,9 @@ class RandomModel(Model):
         # RandomActivation is a scheduler that activates each agent once per step, in random order.
         self.schedule = RandomActivation(self)
         
-        self.running = True 
+        # self.running = True 
         
-
+        self.trash_count = 0
         self.datacollector = DataCollector( 
         agent_reporters={"Steps": lambda a: a.steps_taken if isinstance(a, Roomba) else 0})
 
@@ -61,6 +61,7 @@ class RandomModel(Model):
                     pos = pos_gen(self.grid.width, self.grid.height)
                 self.grid.place_agent(a, pos)
                 self.grid.place_agent(b, pos)
+                
 
         # Add trash to the grid
         for i in range(10):
@@ -68,6 +69,8 @@ class RandomModel(Model):
             while (not self.grid.is_cell_empty(pos)):
                 pos = pos_gen(self.grid.width, self.grid.height)
             self.grid.place_agent(TrashAgent(i+2000, self), pos)
+            self.trash_count += 1
+            print("Trash count: ", self.trash_count)
         #Place trash agent in random cell
 
         for i in range(10):
@@ -75,20 +78,22 @@ class RandomModel(Model):
             while (not self.grid.is_cell_empty(pos)):
                 pos = pos_gen(self.grid.width, self.grid.height)
             self.grid.place_agent(ObstacleAgent(i+2000, self), pos)
+        
+        self.running = True
+        self.datacollector.collect(self)
 
     def step(self):
         '''Advance the model by one step.'''
         self.schedule.step()
         self.datacollector.collect(self)
-    #     if self.count_type(self, TrashAgent) == 0:
-    #         self.running = False
-    
-    # def count_type(model, agent_type):
+        
+        if self.trash_count == 0:
+            print("All trash cleaned up!")
+            self.running = False
+
+    # def count_type(self):
     #     """
-    #     Helper method to count trees in a given condition in a given model.
+    #     Helper method to count agents of a given type in a given model.
     #     """
-    #     count = 0
-    #     for agent in model.schedule.agents:
-    #         if agent_type == type(agent):
-    #             count += 1
-    #     return count
+    #     if self.trash_count == 0:
+    #         return 0

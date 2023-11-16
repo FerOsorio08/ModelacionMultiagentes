@@ -50,10 +50,11 @@ class Roomba(Agent):
         next_moves = trash_neighbors if trash_neighbors else free_spaces 
         next_moves_non_visited = list(set(next_moves) - self.visited_cells)
 
-        if next_moves_non_visited:
-            next_move = self.random.choice(next_moves_non_visited)
-        elif next_moves:
+        if next_moves:
             next_move = self.random.choice(next_moves)
+        elif next_moves_non_visited:
+            next_move = self.random.choice(next_moves_non_visited)
+        
         else:
             # No valid move, stay in the current position
             return
@@ -77,7 +78,9 @@ class Roomba(Agent):
             trash_agent = trash_agents[0]
             # "Clean up" the trash agent
             self.model.grid.remove_agent(trash_agent)
+            self.model.trash_count -= 1
             self.lowerBattery()
+            
 
     def a_star_search(self, graph, start, goal):
         """A* search to find the shortest path between a start and a goal node.
@@ -213,6 +216,7 @@ class Roomba(Agent):
             if any(isinstance(agent, TrashAgent) for agent in cell_contents):
                 # There is at least one TrashAgent in the cell
                 self.detectTrash()
+            
 
         # Other actions as needed
         # self.ExploreCell()
