@@ -222,23 +222,32 @@ class Roomba(Agent):
                 # if charging_path is not length 1
                 self.GoThroughPath(charging_path)
                 if self.pos == charging_station:
-                    print("charging station pos: ", charging_station)
                     if self.battery < 100:
                         self.battery += self.detectCharging()
+                        print("battery at: ", self.battery)
                         #min to make sure battery doesn't go over 100
                         self.battery = min(self.battery, 100)
-                    elif self.battery == 100:
+                        self.charging = True
+                    elif self.battery == 100 or self.battery > 100:
                         self.charging = False
                         print("Battery is full")
                     
             elif self.battery > len(charging_path):
-                self.move()
-                # Move the agent
-                # if there is trash in the cell, clean it
-                cell_contents = self.model.grid.get_cell_list_contents(self.pos)
-                if any(isinstance(agent, TrashAgent) for agent in cell_contents):
-                    # There is at least one TrashAgent in the cell
-                    self.detectTrash()
+                if self.charging == True:
+                    print("Charging is true and not moving")
+                    self.battery += self.detectCharging()
+                    print("battery at: ", self.battery)
+                    if self.battery == 100 or self.battery > 100:
+                        self.charging = False
+                        print("Battery is full")
+                else:
+                    self.move()
+                    # Move the agent
+                    # if there is trash in the cell, clean it
+                    cell_contents = self.model.grid.get_cell_list_contents(self.pos)
+                    if any(isinstance(agent, TrashAgent) for agent in cell_contents):
+                        # There is at least one TrashAgent in the cell
+                        self.detectTrash()
         else:
             print("Just moving")
             self.move()
