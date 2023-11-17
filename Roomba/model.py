@@ -17,17 +17,14 @@ class RandomModel(Model):
         N: Number of agents in the simulation
         height, width: The size of the grid to model
     """
-    def __init__(self, N, width, height):
-        self.num_agents = N
-        # Multigrid is a special type of grid where each cell can contain multiple agents.
+    def __init__(self, N, width, height,trash_countS):
+        self.num_agents = int(N)
         self.grid = MultiGrid(width,height,torus = False) 
 
         # RandomActivation is a scheduler that activates each agent once per step, in random order.
-        self.schedule = RandomActivation(self)
-        
-        # self.running = True 
-        
+        self.schedule = RandomActivation(self)        
         self.trash_count = 0
+        self.trashes = int(trash_countS)
         # self.datacollector = DataCollector( 
         # agent_reporters={"Steps": lambda a: a.steps_taken if isinstance(a, Roomba) else 0})
         self.datacollector = DataCollector( 
@@ -44,7 +41,6 @@ class RandomModel(Model):
         for pos in border:
             obs = ObstacleAgent(pos, self)
             self.grid.place_agent(obs, pos)
-        
         
 
         # Function to generate random positions
@@ -77,7 +73,7 @@ class RandomModel(Model):
                 
 
         # Add trash to the grid
-        for i in range(20):
+        for i in range(self.trashes):
             pos = pos_gen(self.grid.width, self.grid.height)
             while (not self.grid.is_cell_empty(pos)):
                 pos = pos_gen(self.grid.width, self.grid.height)
@@ -100,6 +96,7 @@ class RandomModel(Model):
         self.schedule.step()
         self.datacollector.collect(self)
         
+        # If there is no trash left, stop the simulation
         if self.trash_count == 0:
             print("All trash cleaned up!")
             self.running = False

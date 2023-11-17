@@ -1,9 +1,11 @@
 from model import RandomModel, ObstacleAgent, TrashAgent, Charging
-from mesa.visualization import CanvasGrid, BarChartModule
+from mesa.visualization import CanvasGrid, BarChartModule, PieChartModule
 from mesa.visualization import ModularServer
+from mesa.datacollection import DataCollector
 
 def agent_portrayal(agent):
-    if agent is None: return
+    if agent is None:
+        return
     
     portrayal = {"Shape": "circle",
                  "Filled": "true",
@@ -11,45 +13,51 @@ def agent_portrayal(agent):
                  "Color": "red",
                  "r": 0.5}
 
-    if (isinstance(agent, ObstacleAgent)):
+    if isinstance(agent, ObstacleAgent):
         portrayal["Color"] = "grey"
         portrayal["Layer"] = 1
         portrayal["r"] = 0.6
     
-    if (isinstance(agent, TrashAgent)):
+    if isinstance(agent, TrashAgent):
         portrayal["Color"] = "green"
         portrayal["Layer"] = 1
         portrayal["r"] = 0.3
     
-    if (isinstance(agent, Charging)):
+    if isinstance(agent, Charging):
         portrayal["Color"] = "purple"
         portrayal["Layer"] = 1
         portrayal["r"] = 0.2
 
     return portrayal
 
-model_params = {"N":1, "width":12, "height":12}
+model_params = {"N": 2, "width": 12, "height": 12, "trash_countS": 32}
 
 grid = CanvasGrid(agent_portrayal, 12, 12, 500, 500)
 
 bar_chart = BarChartModule(
     [
-        {"Label": "Battery", "Color": "green"},
-        {"Label": "CleanedCells", "Color": "red"},
-        {"Label": "StepsTaken", "Color": "blue"}
+        {"Label": "Battery", "Color": "purple"},
+        {"Label": "CleanedCells", "Color": "green"},
+        {"Label": "StepsTaken", "Color": "black"}
     ],
     scope="agent",
     sorting="ascending",
     sort_by="Steps",
     canvas_height=300,  
     canvas_width=300,
-
 )
 
+# pie_chart = PieChartModule(
+#     [
+#         {"Label": "CleanedCells", "Color": "green"},
+#         {"Label": "RemainingCells", "Color": "lightgrey"},
+#         {"Label": "StepsTaken", "Color": "black"}
+#     ],
+#     data_collector=pie_chart_data,
+#     canvas_height=300,  
+#     canvas_width=300,
+# )
 
-# bar_chart2 = BarChartModule([{"Label": "Deleted_Count", "Color": "red"}], scope="model")
-
-server = ModularServer(RandomModel, [grid, bar_chart], "Random Agents", model_params)
-                       
-server.port = 8521 # The default
+server = ModularServer(RandomModel, [grid, bar_chart], "Roomba Agents", model_params)
+server.port = 8521  # The default
 server.launch()
