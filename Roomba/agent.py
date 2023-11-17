@@ -37,6 +37,7 @@ class Roomba(Agent):
         self.cleaned_cells = set()
         self.cleaned_cells_count = 0 
 
+    #Complejidad O(N), donde N es el numero de agentes
     def clean_trash(self):
         uncleaned_cells = self.model.grid.get_cell_list_contents([self.pos])
         for trash in uncleaned_cells:
@@ -46,12 +47,14 @@ class Roomba(Agent):
                 self.cleaned_cells.add(self.pos)
                 self.cleaned_cells_count = len(self.cleaned_cells)
 
+    #Complejidad O(1)
     def lowerBattery(self):
         """
         Lowers the battery of the agent by 1
         """
         self.battery -= 1
 
+    #Complejidad O(N), donde N es el numero de agentes
     def move(self):
         """ 
         Determines if the agent can move in the direction that was chosen
@@ -83,6 +86,7 @@ class Roomba(Agent):
         self.steps_taken += 1
         self.lowerBattery()
 
+    #Complejidad O(N), donde N es el numero de agentes
     def detectTrash(self):
         """
         Detects if there is trash in the same cell as the agent
@@ -103,6 +107,7 @@ class Roomba(Agent):
             self.cleaned_cells_count = len(self.cleaned_cells)
             
 
+    #Complejidad O(E +VlogV), donde E es el numero de aristas y V el numero de vertices
     def a_star_search(self, graph, start, goal):
         """A* search to find the shortest path between a start and a goal node.
         Args:
@@ -121,6 +126,7 @@ class Roomba(Agent):
             # If no path is found, return None
             return None
     
+    #Complejidad O(1)
     def heuristic(self, a, b):
         """Manhattan distance heuristic for A* pathfinding."""
         (x1, y1) = a
@@ -128,19 +134,20 @@ class Roomba(Agent):
         return abs(x1 - x2) + abs(y1 - y2)
     
     
+    #Complejidad O(V + E), donde V es el numero de vertices y E el numero de aristas
     def CreateGraph(self):
         """Creates a graph of the visited cells"""
         self.graph = nx.grid_graph(dim=[self.model.grid.width, self.model.grid.height])
-        for x in range(self.model.grid.width):
-            for y in range(self.model.grid.height):
-                cell_contents = self.model.grid.get_cell_list_contents((x, y))
-                if any(isinstance(agent, ObstacleAgent) for agent in cell_contents):
-                    # Remove the node if an obstacle is found in the cell
-                    self.graph.remove_node((x, y))
+
+        # Get positions of obstacle agents
+        obstacles_positions = [(agent.pos[0], agent.pos[1]) for agent in self.model.schedule.agents if isinstance(agent, ObstacleAgent)]
+
+        # Remove nodes with obstacles
+        self.graph.remove_nodes_from(obstacles_positions)
+
         return self.graph
-        
     
-    
+    #Complejidad O(P), donde P es el numero de nodos en el path
     def GoThroughPath(self, path):
         """Moves the agent through the path"""
         #print("Moving through path")
@@ -160,9 +167,7 @@ class Roomba(Agent):
             print("No more nodes in the path.")
 
 
-
-
-
+    #Complejidad O(1)
     def detectCharging(self):
         """Detects if the agent is in the same cell as a charging station"""
         if self.battery >= 100:
@@ -176,6 +181,7 @@ class Roomba(Agent):
                 return 5
                 # self.visited = []
     
+    #Complejidad O(P), donde P es el numero de nodos en el path
     def battery_threshold(self):
         """Determines the battery threshold for the agent to move back home"""
         charging_station = self.find_nearest_charging_station()
@@ -190,7 +196,7 @@ class Roomba(Agent):
             return 0
         
 
-
+    #Complejidad O(P), donde P es el numero de nodos en el path o el numero de nodos en el grafo
     def step(self):
         """
         A single step of the agent.
@@ -260,11 +266,10 @@ class Roomba(Agent):
                 self.detectTrash()
 
 
+    #Complejidad O(C) donde C es el numero de estaciones de carga
     def find_nearest_charging_station(self):
         """Finds the nearest charging station using simple distance calculation."""
         charging_stations = [agent.pos for agent in self.model.schedule.agents if isinstance(agent, Charging)]
-        # charging_stations.append(self.initialPos)
-        # charging_stations = list(set(charging_stations) - self.visited_cells)
         self.graph.add_nodes_from(charging_stations)
         distances = [self.heuristic(self.pos, station) for station in charging_stations]
         if distances:

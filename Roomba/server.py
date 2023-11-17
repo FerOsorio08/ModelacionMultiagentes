@@ -3,6 +3,9 @@ from mesa.visualization import CanvasGrid, BarChartModule, PieChartModule
 from mesa.visualization import ModularServer
 from mesa.datacollection import DataCollector
 
+COLORS = {"Cleaned": "purple", "StepsTaken": "black", "Battery": "green"}
+
+
 def agent_portrayal(agent):
     if agent is None:
         return
@@ -30,7 +33,7 @@ def agent_portrayal(agent):
 
     return portrayal
 
-model_params = {"N": 2, "width": 12, "height": 12, "trash_countS": 32}
+model_params = {"N": 1, "width": 12, "height": 12, "trash_countS": 20}
 
 grid = CanvasGrid(agent_portrayal, 12, 12, 500, 500)
 
@@ -48,15 +51,9 @@ bar_chart = BarChartModule(
 )
 
 # pie_chart = PieChartModule(
-#     [
-#         {"Label": "CleanedCells", "Color": "green"},
-#         {"Label": "RemainingCells", "Color": "lightgrey"},
-#         {"Label": "StepsTaken", "Color": "black"}
-#     ],
-#     data_collector=pie_chart_data,
-#     canvas_height=300,  
-#     canvas_width=300,
+#     [{"Label": label, "Color": color} for label, color in COLORS.items()]
 # )
+
 
 server = ModularServer(RandomModel, [grid, bar_chart], "Roomba Agents", model_params)
 server.port = 8521  # The default
