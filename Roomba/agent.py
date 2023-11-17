@@ -1,13 +1,19 @@
+""" 
+Fernanda Osorio - A01026502
+16 de noviembre 2023
+This file contains the agent class for the Roomba model.
+It has the agents: Roomba, ObstacleAgent, TrashAgent, Charging.
+"""
 from mesa import Agent
 import networkx as nx
 import matplotlib.pyplot as plt
 
 class Roomba(Agent):
     """
-    Agent that moves randomly.
-    Attributes:
-        unique_id: Agent's ID 
-        direction: Randomly chosen direction chosen from one of eight directions
+    Agent that moves around the grid and cleans trash. 
+    It has the funcitons: init, lowerBattery, move, detectTrash, a_star_search, heuristic, CreateGraph, GoThroughPath, 
+    detectCharging, battery_threshold, step, find_nearest_charging_station. All of which are used 
+    to move the agent around the grid and clean trash.
     """
     def __init__(self, unique_id, model, initialPos):
         """
@@ -15,6 +21,7 @@ class Roomba(Agent):
         Args:
             unique_id: The agent's ID
             model: Model reference for the agent
+            initialPos: The initial position of the agent
         """
         super().__init__(unique_id, model)
 
@@ -27,6 +34,17 @@ class Roomba(Agent):
         self.graph.add_node(initialPos)
         self.initialPos = initialPos
         self.battery_thresholds = 0
+        self.cleaned_cells = set()
+        self.cleaned_cells_count = 0 
+
+    def clean_trash(self):
+        uncleaned_cells = self.model.grid.get_cell_list_contents([self.pos])
+        for trash in uncleaned_cells:
+            if isinstance(trash, TrashAgent):
+                self.model.grid.remove_agent(trash)
+                self.model.schedule.remove(trash)
+                self.cleaned_cells.add(self.pos)
+                self.cleaned_cells_count = len(self.cleaned_cells)
 
     def lowerBattery(self):
         """
@@ -81,6 +99,8 @@ class Roomba(Agent):
             self.model.grid.remove_agent(trash_agent)
             self.model.trash_count -= 1
             self.lowerBattery()
+            self.cleaned_cells.add(self.pos)
+            self.cleaned_cells_count = len(self.cleaned_cells)
             
 
     def a_star_search(self, graph, start, goal):
@@ -90,8 +110,6 @@ class Roomba(Agent):
             start: The start node
             goal: The goal node
         """
-        # self.graph.add_node((1,1))
-        # self.graph.add_node(self.pos)
         self.graph.add_node(self.initialPos)
         x, y = start
         j, i = goal
@@ -128,6 +146,10 @@ class Roomba(Agent):
         return self.graph
     
     def create_graph(self):
+        """
+        Creates a graph of the grid, with obstacles removed.
+
+        """
         self.graph = nx.grid_graph(dim=[self.model.grid.width, self.model.grid.height])
         for x in range(self.model.grid.width):
             for y in range(self.model.grid.height):
@@ -157,22 +179,11 @@ class Roomba(Agent):
             print("No more nodes in the path.")
 
 
-    # def GoThroughPath(self, path):
-    #     """Moves the agent through the path"""
-    #     print("moving through path")
-    #     for i in range(len(path) - 1):
-    #         current_node = path[i]
-    #         print ("current node", current_node)
-    #         next_node = path[i + 1]
-    #         print ("next node", next_node)
-
-    #         # Move the agent
-    #         self.model.grid.move_agent(self, next_node)
-    #         self.pos = next_node
 
 
 
     def detectCharging(self):
+        """Detects if the agent is in the same cell as a charging station"""
         if self.battery >= 100:
             self.charging = False
             return
@@ -186,6 +197,7 @@ class Roomba(Agent):
                 # self.visited = []
     
     def battery_threshold(self):
+        """Determines the battery threshold for the agent to move back home"""
         charging_station = self.find_nearest_charging_station()
         charging_path = self.a_star_search(self.create_graph(), self.pos, charging_station)
 
@@ -200,7 +212,16 @@ class Roomba(Agent):
 
 
     def step(self):
-        """Determines the new direction it will take, and then moves"""
+        """
+        A single step of the agent.
+        Only one action is taken every step.
+        Depending on the battery level, the agent will either move or move back home to charge.
+        If there is trash in the cell, the agent will clean it.
+        If none of the above, the agent will move, till it finds trash or needs to charge.
+        If the battery is depleted, the agent will shut down. 
+        IF the battery is full, the agent will stop charging.
+
+        """
        
         if self.battery == 0:
             print("Battery depleted. Agent shutting down.")

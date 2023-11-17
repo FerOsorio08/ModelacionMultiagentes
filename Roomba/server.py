@@ -33,8 +33,19 @@ model_params = {"N":1, "width":12, "height":12}
 grid = CanvasGrid(agent_portrayal, 12, 12, 500, 500)
 
 bar_chart = BarChartModule(
-    [{"Label": "Steps", "Color": "#AA0000"}],
-    scope="agent", sorting="ascending", sort_by="Steps" )
+    [
+        {"Label": "Battery", "Color": "green"},
+        {"Label": "CleanedCells", "Color": "red"},
+        {"Label": "StepsTaken", "Color": "blue"}
+    ],
+    scope="agent",
+    sorting="ascending",
+    sort_by="Steps",
+    canvas_height=300,  
+    canvas_width=300,
+
+)
+
 
 # bar_chart2 = BarChartModule([{"Label": "Deleted_Count", "Color": "red"}], scope="model")
 

@@ -1,3 +1,8 @@
+"""
+Fernanda Osorio - A01026502
+16 de noviembre 2023
+This file contains the model class for the Roomba simulation.
+"""
 from mesa import Model, agent
 from mesa.time import RandomActivation
 from mesa.space import MultiGrid
@@ -6,6 +11,7 @@ from agent import Roomba, ObstacleAgent, TrashAgent, Charging
 
 class RandomModel(Model):
     """ 
+    It contains the funcitons: init,step and deleted_count.
     Creates a new model with random agents.
     Args:
         N: Number of agents in the simulation
@@ -25,12 +31,9 @@ class RandomModel(Model):
         # self.datacollector = DataCollector( 
         # agent_reporters={"Steps": lambda a: a.steps_taken if isinstance(a, Roomba) else 0})
         self.datacollector = DataCollector( 
-            agent_reporters={
-            "Steps": lambda a: a.steps_taken if isinstance(a, Roomba) else 0}
-            ,
-            model_reporters={
-                    "Deleted_Count": lambda model: model.deleted_count
-                }
+            agent_reporters={"Battery": lambda a: a.battery if isinstance(a, Roomba) else 0,
+                        "CleanedCells": lambda a: a.cleaned_cells_count if isinstance(a, Roomba) else 0,
+                        "StepsTaken": lambda a: a.steps_taken if isinstance(a, Roomba) else 0}
         
         )
 
@@ -55,6 +58,7 @@ class RandomModel(Model):
             self.schedule.add(a)
             self.schedule.add(b)
             
+            #if there is only one agent place it on the 1,1 position
             if (i==0):
                 pos = (1,1)
 
@@ -101,4 +105,5 @@ class RandomModel(Model):
             self.running = False
 
     def deleted_count(self):
+        """It keeps a count of the deleted trash"""
         return self.trash_count
