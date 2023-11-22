@@ -118,7 +118,7 @@ class Roomba(Agent):
         self.graph.add_node(self.initialPos)
         x, y = start
         j, i = goal
-        heuristic  = abs(x - j) + abs(y - i)
+        # heuristic  = abs(x - j) + abs(y - i)
         try:
             path = nx.astar_path(graph, start, goal, heuristic=self.heuristic)
             return path
